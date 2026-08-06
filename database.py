@@ -97,14 +97,6 @@ class ConversationMessage(SQLModel, table=True):
     text: str
     created_at: datetime = Field(default_factory=datetime.now, index=True)
 
-class ConversationMessage(SQLModel, table=True):
-    """History chat per nomor. Dipakai memory AI + dibaca dashboard."""
-
-    id: Optional[int] = Field(default=None, primary_key=True)
-    phone: str = Field(index=True)
-    role: str  # "user" | "model"
-    text: str
-    created_at: datetime = Field(default_factory=datetime.now, index=True)
 
 class Contact(SQLModel, table=True):
     """Satu baris per nomor WhatsApp.
@@ -232,3 +224,4 @@ if __name__ == "__main__":
         for s in session.exec(select(SpecialSchedule).order_by(SpecialSchedule.schedule_date)).all():
             status = "TUTUP TOTAL" if s.is_closed else f"{s.doctor_name} {s.doctor_start}–{s.doctor_end}"
             print(f"  - {s.schedule_date}: {status}")
+
