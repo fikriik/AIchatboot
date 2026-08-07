@@ -9,27 +9,30 @@ import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 
 from agent import run_agent
 from database import init_db, seed_db
 from memory import memory
+from routes.dashboard import router as dashboard_router
 from whatsapp import extract_incoming, fetch_media_b64, send_reply
 
 load_dotenv()
 
 BUFFER_SECONDS = float(os.getenv("BUFFER_SECONDS", "8"))
-
 # Folder simpan gambar customer (fallback lokal saat R2 belum dikonfigurasi).
 MEDIA_DIR = Path(__file__).parent / "media"
 MEDIA_DIR.mkdir(exist_ok=True)
 
-# ---- Cloudflare R2 / S3 (opsional) -----------------------------------------
+
+# Kalau R2_BUCKET kosong -> simpan ke disk lokal. Kalau diisi -> upload ke R2.
 R2_ENDPOINT = os.getenv("R2_ENDPOINT", "")
 R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID", "")
 R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY", "")
 R2_BUCKET = os.getenv("R2_BUCKET", "")
 R2_PUBLIC_URL = os.getenv("R2_PUBLIC_URL", "").rstrip("/")
 
+# R2 hanya aktif kalau SEMUA nilai terisi; kalau belum -> fallback lokal (aman).
 R2_ENABLED = all([R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL])
 
 EXT = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
@@ -75,9 +78,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Glowria AI Sales Agent", lifespan=lifespan)
+app.include_router(dashboard_router)
+app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 
 
-@app.get("/")
+@app.get("/") #ketika akau buka domain langsung ke (localhost:8000) ke localhost:8000/dashboard ==> html
 def root():
     return {"status": "ok", "message": "Glowria AI Sales Agent Engine running"}
 
