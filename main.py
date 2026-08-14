@@ -54,12 +54,19 @@ def _get_s3():
 
 
 def save_media(phone: str, data: bytes, mime: str) -> str:
-    """Simpan byte gambar, kembalikan path relatif 'media/<file>'."""
+    """Simpan byte gambar ke folder media, return path relatif untuk dashboard."""
+    ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}.get(mime, "jpg")
+    fname = f"{phone}_{uuid.uuid4().hex[:8]}.{ext}"
+    """Simpan byte gambar -> kembalikan referensi untuk dashboard.
+
+    R2 dikonfigurasi  -> upload, return URL publik absolut.
+    Belum dikonfigurasi -> tulis ke media/ lokal, return path relatif.
+    """
     fname = f"{phone}_{uuid.uuid4().hex[:8]}.{EXT.get(mime, 'jpg')}"
     if R2_ENABLED:
         _get_s3().put_object(Bucket=R2_BUCKET, Key=fname, Body=data, ContentType=mime)
-    else:
-        (MEDIA_DIR / fname).write_bytes(data)
+        return f"{R2_PUBLIC_URL}/{fname}"
+    (MEDIA_DIR / fname).write_bytes(data)
     return f"media/{fname}"
 
 
